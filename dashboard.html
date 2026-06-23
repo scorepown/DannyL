@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>תיק בזמן אמת - Real-Time Portfolio</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #1e3a8a;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f97316;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1f2937;
+      --text-light: #6b7280;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+      color: white;
+      padding: 20px 30px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .header-info {
+      display: flex;
+      gap: 20px;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 25px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 15px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-light);
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: rgba(30, 58, 138, 0.05);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Live Ticker Section */
+    .ticker-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      margin-bottom: 25px;
+    }
+
+    .ticker-header {
+      background: var(--bg);
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 100px 120px 120px 120px 100px 80px;
+      gap: 15px;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .ticker-item {
+      display: grid;
+      grid-template-columns: 100px 120px 120px 120px 100px 80px;
+      gap: 15px;
+      align-items: center;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .ticker-item:last-child {
+      border-bottom: none;
+    }
+
+    .ticker-item:hover {
+      background: var(--bg);
+    }
+
+    .ticker-item.flash {
+      animation: flash 0.5s ease;
+    }
+
+    @keyframes flash {
+      0%, 100% { background: transparent; }
+      50% { background: rgba(34, 197, 94, 0.1); }
+    }
+
+    .symbol {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .price {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .change {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .change.positive {
+      color: var(--success);
+    }
+
+    .change.negative {
+      color: var(--danger);
+    }
+
+    .time {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    .high-low {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .status-live {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+    }
+
+    .status-live:before {
+      content: "●";
+      animation: pulse 1.5s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Portfolio Summary */
+    .portfolio-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .summary-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .summary-subtitle {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    .summary-subtitle.positive {
+      color: var(--success);
+    }
+
+    .summary-subtitle.negative {
+      color: var(--danger);
+    }
+
+    /* Alerts */
+    .alerts-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+
+    .alerts-section h3 {
+      color: var(--primary);
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    .alert-item {
+      background: var(--bg);
+      border-left: 4px solid var(--warning);
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-item.no-alerts {
+      text-align: center;
+      color: var(--text-light);
+      border: none;
+    }
+
+    /* Loading State */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-light);
+    }
+
+    .spinner {
+      border: 3px solid var(--border);
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .watchlist-controls {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    button {
+      padding: 8px 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background: #1e40af;
+    }
+
+    @media (max-width: 768px) {
+      .ticker-header, .ticker-item {
+        grid-template-columns: 80px 100px 100px 80px;
+        gap: 10px;
+      }
+
+      .ticker-header {
+        font-size: 11px;
+      }
+
+      .portfolio-summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <h1>📊 תיק השקעות בזמן אמת</h1>
+    <div class="header-info">
+      <div>📱 מחברים לנתונים חיים...</div>
+      <div id="connection-status" style="color: #10b981;">🟢 מחובר</div>
+      <div id="last-update">עדכון: --:--:--</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Portfolio Summary -->
+    <div class="portfolio-summary">
+      <div class="summary-card">
+        <div class="summary-label">ערך כולל</div>
+        <div class="summary-value" id="total-value">₪ 127,850</div>
+        <div class="summary-subtitle">כערך שוק לוכודי</div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-label">רווח/הפסד</div>
+        <div class="summary-value positive" id="profit-loss">+ ₪ 17,350</div>
+        <div class="summary-subtitle positive" id="profit-loss-percent">15.7% ↑</div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-label">השקעות פעילות</div>
+        <div class="summary-value" id="active-investments">12</div>
+        <div class="summary-subtitle">מניות וקרנות</div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-label">עדכון אחרון</div>
+        <div class="summary-value" id="update-time">--:--:--</div>
+        <div class="summary-subtitle">זמן עדכון</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('ticker')">🔴 טיקר חי</button>
+      <button class="tab-btn" onclick="switchTab('watchlist')">⭐ רשימת ניטור</button>
+      <button class="tab-btn" onclick="switchTab('alerts')">🔔 התראות</button>
+    </div>
+
+    <!-- Ticker Tab -->
+    <div id="ticker" class="tab-content active">
+      <div class="ticker-section">
+        <div class="ticker-header">
+          <div>סמל</div>
+          <div>מחיר</div>
+          <div>שינוי</div>
+          <div>אחוז</div>
+          <div>טווח יום</div>
+          <div>עדכון</div>
+        </div>
+        <div id="ticker-body"></div>
+      </div>
+    </div>
+
+    <!-- Watchlist Tab -->
+    <div id="watchlist" class="tab-content">
+      <div class="watchlist-controls">
+        <h3>הוסף למעקב</h3>
+        <div class="control-group">
+          <input type="text" id="watchlist-input" placeholder="סמל מניה (לדוגמה: AAPL)">
+          <button onclick="addToWatchlist()">הוסף</button>
+        </div>
+      </div>
+      <div id="watchlist-content"></div>
+    </div>
+
+    <!-- Alerts Tab -->
+    <div id="alerts" class="tab-content">
+      <div class="alerts-section">
+        <h3>🔔 התראות מהעסקות הגדולות</h3>
+        <div id="alerts-list">
+          <div class="alert-item no-alerts">אין התראות כרגע - מערכת משוקללת וחוקקת!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // דוגמה של נתונים חיים (בפרויקט אמיתי - זה יגיע מ-TradingView/API)
+    const mockData = {
+      AAPL: { price: 189.50, previousPrice: 187.15, high: 191.20, low: 185.30, volume: 52340000 },
+      MSFT: { price: 405.20, previousPrice: 407.50, high: 410.30, low: 402.10, volume: 28450000 },
+      GOOG: { price: 142.80, previousPrice: 140.25, high: 145.50, low: 140.00, volume: 35600000 },
+      TSLA: { price: 248.65, previousPrice: 245.30, high: 251.20, low: 244.50, volume: 118900000 },
+      IBM: { price: 195.40, previousPrice: 196.75, high: 197.80, low: 194.30, volume: 2800000 }
+    };
+
+    const defaultWatchlist = ['AAPL', 'MSFT', 'GOOG', 'TSLA', 'IBM'];
+    let watchlist = [...defaultWatchlist];
+    let alerts = [];
+
+    // עדכן טיקר כל 2 שניות (סימולציה)
+    setInterval(() => {
+      updateTicker();
+      updateTime();
+      simulatePriceChange();
+    }, 2000);
+
+    function updateTicker() {
+      const tickerBody = document.getElementById('ticker-body');
+      tickerBody.innerHTML = '';
+
+      watchlist.forEach(symbol => {
+        const data = mockData[symbol];
+        const change = data.price - data.previousPrice;
+        const changePercent = (change / data.previousPrice) * 100;
+        const changeClass = change >= 0 ? 'positive' : 'negative';
+        const changeSign = change >= 0 ? '+' : '';
+
+        const item = document.createElement('div');
+        item.className = 'ticker-item flash';
+        item.id = `ticker-${symbol}`;
+        item.innerHTML = `
+          <div class="symbol">${symbol}</div>
+          <div class="price">₪ ${data.price.toFixed(2)}</div>
+          <div class="change ${changeClass}">${changeSign}${change.toFixed(2)}</div>
+          <div class="change ${changeClass}">${changeSign}${changePercent.toFixed(2)}%</div>
+          <div class="high-low">${data.low.toFixed(2)} - ${data.high.toFixed(2)}</div>
+          <div class="time">${new Date().toLocaleTimeString('he-IL')}</div>
+        `;
+        tickerBody.appendChild(item);
+
+        // בדוק התראות
+        checkAlert(symbol, changePercent);
+      });
+    }
+
+    function simulatePriceChange() {
+      // סימולציה: שנה מחירים קצת
+      Object.keys(mockData).forEach(symbol => {
+        const change = (Math.random() - 0.5) * 2; // ±1
+        mockData[symbol].previousPrice = mockData[symbol].price;
+        mockData[symbol].price += change;
+        mockData[symbol].price = Math.max(mockData[symbol].price, 1);
+      });
+    }
+
+    function switchTab(tabName) {
+      const tabs = document.querySelectorAll('.tab-content');
+      tabs.forEach(tab => tab.classList.remove('active'));
+
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('last-update').textContent = 
+        `עדכון: ${now.toLocaleTimeString('he-IL')}`;
+      document.getElementById('update-time').textContent = 
+        now.toLocaleTimeString('he-IL');
+    }
+
+    function addToWatchlist() {
+      const input = document.getElementById('watchlist-input');
+      const symbol = input.value.toUpperCase().trim();
+
+      if (symbol && !watchlist.includes(symbol)) {
+        watchlist.push(symbol);
+        mockData[symbol] = {
+          price: Math.random() * 300 + 50,
+          previousPrice: Math.random() * 300 + 50,
+          high: Math.random() * 300 + 100,
+          low: Math.random() * 300,
+          volume: Math.floor(Math.random() * 50000000)
+        };
+        input.value = '';
+        updateTicker();
+        showNotification(`✅ ${symbol} נוסף למעקב!`);
+      }
+    }
+
+    function checkAlert(symbol, changePercent) {
+      if (Math.abs(changePercent) > 3) {
+        const alertText = changePercent > 0 
+          ? `📈 ${symbol} עלה ב-${changePercent.toFixed(2)}%`
+          : `📉 ${symbol} ירד ב-${Math.abs(changePercent).toFixed(2)}%`;
+
+        if (!alerts.includes(alertText)) {
+          alerts.push(alertText);
+          updateAlerts();
+          showNotification(alertText);
+        }
+      }
+    }
+
+    function updateAlerts() {
+      const alertsList = document.getElementById('alerts-list');
+      alertsList.innerHTML = '';
+
+      if (alerts.length === 0) {
+        alertsList.innerHTML = '<div class="alert-item no-alerts">אין התראות כרגע!</div>';
+      } else {
+        alerts.forEach(alert => {
+          const item = document.createElement('div');
+          item.className = 'alert-item';
+          item.innerHTML = `
+            <span>${alert}</span>
+            <span class="time">${new Date().toLocaleTimeString('he-IL')}</span>
+          `;
+          alertsList.appendChild(item);
+        });
+      }
+    }
+
+    function showNotification(message) {
+      if (Notification.permission === 'granted') {
+        new Notification('תיק השקעות', { body: message });
+      }
+    }
+
+    // בקש הרשאה לנוטיפיקציות
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // אתחול
+    updateTicker();
+    updateTime();
+  </script>
+</body>
+</html>
