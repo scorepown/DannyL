@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>יומן השקעות | Netan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --primary:#1e3a8a;
+    --primary-light:#eef2ff;
+    --success:#10b981;
+    --success-bg:#ecfdf5;
+    --danger:#ef4444;
+    --danger-bg:#fef2f2;
+    --confidence:#f59e0b;
+    --bg:#f6f8fc;
+    --card:#ffffff;
+    --text:#1e293b;
+    --text-muted:#64748b;
+    --border:#e2e8f0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Noto Sans Hebrew',sans-serif;
+    direction:rtl;
+    text-align:right;
+    overflow-x:hidden;
+  }
+  .num{
+    font-family:'JetBrains Mono',monospace;
+    direction:ltr;
+    unicode-bidi:embed;
+    display:inline-block;
+    font-weight:600;
+  }
+  .positive{color:var(--success);}
+  .negative{color:var(--danger);}
+  .neutral{color:var(--text-muted);}
+
+  .topnav{
+    background:var(--primary);
+    color:#fff;
+    padding:14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .topnav .brand{font-weight:800;font-size:18px;}
+  .topnav .links{display:flex;gap:18px;flex-wrap:wrap;}
+  .topnav .links a{color:#c7d2fe;text-decoration:none;font-size:14px;font-weight:500;}
+  .topnav .links a.active{color:#fff;border-bottom:2px solid #fff;padding-bottom:2px;}
+  .topnav .links a:hover{color:#fff;}
+
+  .container{max-width:1180px;margin:0 auto;padding:22px 20px 60px;}
+
+  .stats-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:22px;
+  }
+  @media (max-width:800px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+  .stat-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 18px;
+  }
+  .stat-label{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;}
+  .stat-value{font-size:22px;font-weight:800;}
+
+  .app-layout{
+    display:grid;
+    grid-template-columns:360px 1fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width:1040px){.app-layout{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px;
+  }
+  .form-card{position:sticky;top:16px;}
+  @media (max-width:1040px){.form-card{position:static;}}
+  .card h2{margin:0 0 14px;font-size:16px;font-weight:800;color:var(--primary);}
+  .card h3{margin:0 0 10px;font-size:14px;font-weight:700;}
+
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px;color:var(--text);}
+  input[type=text],input[type=number],input[type=date],textarea,select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-family:'Noto Sans Hebrew',sans-serif;
+    font-size:14px;
+    background:#fff;
+    color:var(--text);
+  }
+  input[type=number],input[type=date]{font-family:'JetBrains Mono',monospace;direction:ltr;text-align:right;}
+  textarea{resize:vertical;min-height:70px;font-family:'Noto Sans Hebrew',sans-serif;}
+  .row-inline{display:flex;gap:8px;align-items:flex-end;}
+  .row-inline > *{flex:1;}
+
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    font-family:'Noto Sans Hebrew',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:9px 14px;
+    transition:opacity .15s;
+  }
+  button:hover{opacity:.88;}
+  button:disabled{opacity:.5;cursor:default;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-secondary{background:var(--primary-light);color:var(--primary);}
+  .btn-success{background:var(--success);color:#fff;}
+  .btn-danger{background:var(--danger-bg);color:var(--danger);}
+  .btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border);}
+  .btn-block{width:100%;}
+  .btn-sm{padding:5px 10px;font-size:12px;}
+
+  .confidence-picker{display:flex;gap:8px;margin-top:4px;}
+  .confidence-picker button{
+    width:44px;height:44px;padding:0;border-radius:10px;
+    background:#fff;border:2px solid var(--border);color:var(--text-muted);
+    font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;
+  }
+  .confidence-picker button.active{
+    background:var(--confidence);border-color:var(--confidence);color:#fff;
+    box-shadow:0 2px 6px rgba(245,158,11,.35);
+  }
+  .confidence-labels{display:flex;justify-content:space-between;max-width:244px;font-size:11px;color:var(--text-muted);margin-top:5px;}
+
+  .hint{font-size:11.5px;color:var(--text-muted);margin-top:4px;}
+  .status-msg{font-size:12.5px;color:var(--primary);min-height:16px;margin-top:6px;}
+  .error-msg{font-size:12.5px;color:var(--danger);margin-top:6px;}
+
+  .charts-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:20px;}
+  @media (max-width:1040px){.charts-grid{grid-template-columns:1fr;}}
+  .chart-box{position:relative;height:230px;overflow:hidden;}
+  .chart-box canvas{position:absolute !important;top:0;left:0;display:block;width:100% !important;height:100% !important;}
+  .chart-caption{font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:6px;}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+  .toolbar input[type=text]{flex:1;min-width:160px;}
+  .tabs{display:flex;gap:6px;}
+  .tab{padding:7px 14px;border-radius:20px;background:var(--primary-light);color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;border:none;}
+  .tab.active{background:var(--primary);color:#fff;}
+
+  .entry-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 18px;
+    margin-bottom:12px;
+    border-inline-start:5px solid var(--primary);
+  }
+  .entry-card.closed-win{border-inline-start-color:var(--success);}
+  .entry-card.closed-loss{border-inline-start-color:var(--danger);}
+  .entry-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;}
+  .entry-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .symbol{font-weight:800;font-size:16px;}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;}
+  .badge-open{background:var(--primary-light);color:var(--primary);}
+  .badge-closed{background:#f1f5f9;color:var(--text-muted);}
+  .badge-tag{background:#fff7ed;color:#c2410c;}
+  .entry-meta{font-size:12.5px;color:var(--text-muted);margin-top:4px;}
+  .entry-body{margin-top:10px;font-size:13.5px;line-height:1.6;}
+  .entry-numbers{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:13px;}
+  .entry-numbers div span.num{font-size:14px;}
+  .entry-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .manual-price-row{display:flex;gap:6px;margin-top:8px;align-items:center;}
+  .manual-price-row input{max-width:110px;}
+
+  .close-form{display:none;border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
+  .close-form.show{display:block;}
+
+  .empty-state{text-align:center;padding:50px 20px;color:var(--text-muted);}
+  .empty-state .big{font-size:34px;margin-bottom:10px;}
+
+  .insight-card{background:var(--primary-light);border-radius:12px;padding:16px 18px;margin-bottom:20px;font-size:13.5px;line-height:1.7;color:var(--primary);}
+  .insight-card b{font-weight:800;}
+
+  footer{text-align:center;padding:24px;color:var(--text-muted);font-size:12px;}
+  footer button{margin:0 4px;}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">📓 יומן השקעות</div>
+  <div class="links">
+    <a href="dashboard.html">טיקר חי</a>
+    <a href="portfolio.html">ניהול תיק</a>
+    <a href="analyzer.html">ניתוח AI</a>
+    <a href="journal.html" class="active">יומן</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <div class="app-layout">
+
+    <!-- ADD ENTRY FORM -->
+    <aside class="card form-card">
+      <h2>➕ תיעוד עסקה חדשה</h2>
+      <form id="addForm">
+        <label>סימבול</label>
+        <input type="text" id="symbolInput" list="symbolSuggestions" placeholder="AAPL" required style="text-transform:uppercase">
+        <datalist id="symbolSuggestions"></datalist>
+
+        <div class="row-inline">
+          <div>
+            <label>תאריך קניה</label>
+            <input type="date" id="buyDateInput" required>
+          </div>
+          <div>
+            <label>כמות</label>
+            <input type="number" id="quantityInput" min="0.0001" step="any" placeholder="10" required>
+          </div>
+        </div>
+
+        <label>מחיר קניה ($)</label>
+        <div class="row-inline">
+          <input type="number" id="buyPriceInput" min="0" step="0.01" placeholder="150.25" required>
+          <button type="button" class="btn-secondary" id="fetchBuyPriceBtn" style="flex:0 0 auto;">משוך מחיר נוכחי</button>
+        </div>
+        <div class="error-msg" id="buyPriceError"></div>
+
+        <label>רמת ביטחון בהחלטה</label>
+        <div class="confidence-picker" id="confidencePicker">
+          <button type="button" data-val="1">1</button>
+          <button type="button" data-val="2">2</button>
+          <button type="button" data-val="3">3</button>
+          <button type="button" data-val="4">4</button>
+          <button type="button" data-val="5">5</button>
+        </div>
+        <div class="confidence-labels"><span>לא בטוח בכלל</span><span>בטוח מאוד</span></div>
+        <input type="hidden" id="confidenceInput" value="3">
+
+        <label>תג (אופציונלי)</label>
+        <select id="tagInput">
+          <option value="">— בחר תג —</option>
+          <option value="טווח קצר">טווח קצר</option>
+          <option value="טווח ארוך">טווח ארוך</option>
+          <option value="דיבידנד">דיבידנד</option>
+          <option value="מומנטום">מומנטום</option>
+          <option value="ערך">ערך</option>
+          <option value="צמיחה">צמיחה</option>
+          <option value="ספקולטיבי">ספקולטיבי</option>
+          <option value="מבוסס חדשות / אירוע">מבוסס חדשות / אירוע</option>
+        </select>
+
+        <label>למה קניתי? מה חשבתי?</label>
+        <textarea id="thesisInput" placeholder="התזה שלי, מה ראיתי בדוחות, בגרפים, בחדשות..." required></textarea>
+
+        <button type="submit" class="btn-primary btn-block" style="margin-top:16px;">שמור תיעוד</button>
+        <div class="status-msg" id="formStatus"></div>
+      </form>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <section>
+
+      <div class="charts-grid">
+        <div class="card">
+          <h3>עקומת רווח/הפסד לאורך זמן</h3>
+          <div class="chart-box"><canvas id="equityChart"></canvas></div>
+          <div class="chart-caption" id="equityCaption"></div>
+        </div>
+        <div class="card">
+          <h3>תשואה % לפי פוזיציה פתוחה</h3>
+          <div class="chart-box"><canvas id="returnChart"></canvas></div>
+          <div class="chart-caption" id="returnCaption"></div>
+        </div>
+      </div>
+
+      <div id="insightsBox"></div>
+
+      <div class="card">
+        <div class="toolbar">
+          <input type="text" id="searchInput" placeholder="חיפוש לפי סימבול...">
+          <div class="tabs" id="filterTabs">
+            <button class="tab active" data-filter="all">הכל</button>
+            <button class="tab" data-filter="open">פתוחות</button>
+            <button class="tab" data-filter="closed">סגורות</button>
+          </div>
+          <button class="btn-secondary btn-sm" id="refreshPricesBtn">🔄 רענן מחירים</button>
+        </div>
+        <div id="entriesList"></div>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+<footer>
+  יומן השקעות · הנתונים נשמרים בדפדפן שלך (localStorage) בלבד ·
+  <button class="btn-ghost btn-sm" id="exportBtn">📤 ייצוא גיבוי</button>
+  <button class="btn-ghost btn-sm" id="importBtn">📥 ייבוא גיבוי</button>
+  <input type="file" id="importFile" accept="application/json" hidden>
+  <br>
+  💡 טיפ: לקבלת מחירים אוטומטיים, הריצו <span class="num">node server.js</span> והיכנסו דרך <span class="num">http://localhost:3000/journal.html</span>. בלי השרת (למשל ב-GitHub Pages) אפשר להזין מחירים ידנית.
+</footer>
+
+<script>
+// ============ STATE ============
+let entries = JSON.parse(localStorage.getItem('netan_journal_entries') || '[]');
+let snapshots = JSON.parse(localStorage.getItem('netan_journal_snapshots') || '[]');
+let manualPrices = JSON.parse(localStorage.getItem('netan_journal_manual_prices') || '{}');
+let currentPrices = {}; // symbol -> {price:number, source:'api'|'manual'}
+let filterState = 'all';
+let searchState = '';
+let equityChartInstance = null;
+let returnChartInstance = null;
+
+const DEFAULT_SYMBOLS = ['AAPL','MSFT','GOOG','TSLA','IBM'];
+
+function saveEntries(){ localStorage.setItem('netan_journal_entries', JSON.stringify(entries)); }
+function saveSnapshots(){ localStorage.setItem('netan_journal_snapshots', JSON.stringify(snapshots)); }
+function saveManualPrices(){ localStorage.setItem('netan_journal_manual_prices', JSON.stringify(manualPrices)); }
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+// ============ FORMATTERS ============
+function fmtMoney(n){
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return `<span class="num">${sign}$${abs}</span>`;
+}
+function fmtPct(n){
+  const sign = n > 0 ? '+' : '';
+  const cls = n > 0 ? 'positive' : (n < 0 ? 'negative' : 'neutral');
+  return `<span class="num ${cls}">${sign}${n.toFixed(2)}%</span>`;
+}
+function pnlClass(n){ return n > 0 ? 'positive' : (n < 0 ? 'negative' : 'neutral'); }
+
+// ============ PRICE FETCHING ============
+// Talks to the existing Node server's REST API (GET /api/prices/:symbol).
+// ⚠️ If server.js returns a different JSON shape than expected, adjust extractPrice() below.
+async function fetchPrice(symbol){
+  try{
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`/api/prices/${encodeURIComponent(symbol)}`, {signal: controller.signal});
+    clearTimeout(timer);
+    if(!res.ok) return null;
+    const data = await res.json();
+    return extractPrice(data);
+  }catch(err){
+    return null;
+  }
+}
+function extractPrice(data){
+  if (typeof data === 'number') return data;
+  const candidates = [
+    data && data.price,
+    data && data.regularMarketPrice,
+    data && data.currentPrice,
+    data && data.quote && data.quote.price,
+    data && data.quote && data.quote.regularMarketPrice,
+    data && data.data && data.data.price,
+    data && data.result && data.result.price,
+  ];
+  for(const c of candidates){
+    if(typeof c === 'number' && !isNaN(c)) return c;
+  }
+  return null;
+}
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function refreshAllPrices(){
+  const symbols = [...new Set(entries.filter(e => e.status === 'open').map(e => e.symbol))];
+  if(symbols.length === 0){ render(); return; }
+  // Fetched one at a time (not in parallel) with a short pause between requests —
+  // Yahoo Finance sometimes rate-limits bursts of simultaneous requests.
+  for(let i = 0; i < symbols.length; i++){
+    const sym = symbols[i];
+    setStatus('formStatus', `מרענן מחירים... (${i + 1}/${symbols.length})`);
+    const p = await fetchPrice(sym);
+    if(p !== null){
+      currentPrices[sym] = {price: p, source: 'api'};
+    } else if(manualPrices[sym] !== undefined){
+      currentPrices[sym] = {price: manualPrices[sym], source: 'manual'};
+    } else {
+      currentPrices[sym] = null;
+    }
+    if(i < symbols.length - 1) await sleep(350);
+  }
+  setStatus('formStatus', '');
+  takeSnapshotIfNeeded();
+  render();
+}
+function setStatus(elId, msg){
+  const el = document.getElementById(elId);
+  if(el) el.textContent = msg;
+}
+
+// ============ CALCULATIONS ============
+function computeStats(){
+  const open = entries.filter(e => e.status === 'open');
+  const closed = entries.filter(e => e.status === 'closed');
+  let cost = 0, value = 0;
+  const positions = [];
+  open.forEach(e => {
+    const cp = currentPrices[e.symbol];
+    const price = cp ? cp.price : null;
+    const posCost = e.quantity * e.buyPrice;
+    cost += posCost;
+    if(price !== null){
+      const posValue = e.quantity * price;
+      value += posValue;
+      positions.push({entry: e, price, pnl: posValue - posCost, pnlPct: (price - e.buyPrice) / e.buyPrice * 100, source: cp.source});
+    } else {
+      value += posCost;
+      positions.push({entry: e, price: null, pnl: 0, pnlPct: 0, source: null});
+    }
+  });
+  const pnl = value - cost;
+  const pnlPct = cost > 0 ? (pnl / cost * 100) : 0;
+
+  let wins = 0, total = 0;
+  positions.filter(p => p.price !== null).forEach(p => { total++; if(p.pnl > 0) wins++; });
+  closed.forEach(e => { total++; if((e.sellPrice - e.buyPrice) > 0) wins++; });
+  const winRate = total > 0 ? (wins / total * 100) : null;
+
+  return {cost, value, pnl, pnlPct, positions, winRate, open, closed};
+}
+
+function computeInsights(){
+  const closed = entries.filter(e => e.status === 'closed');
+  if(closed.length < 3) return {closedCount: closed.length};
+  const withReturn = closed.map(e => ({...e, retPct: (e.sellPrice - e.buyPrice) / e.buyPrice * 100}));
+  const high = withReturn.filter(e => e.confidence >= 4);
+  const low = withReturn.filter(e => e.confidence <= 2);
+  const avg = arr => arr.length ? (arr.reduce((s,e) => s + e.retPct, 0) / arr.length) : null;
+  const winRate = (withReturn.filter(e => e.retPct > 0).length / withReturn.length) * 100;
+  return {
+    closedCount: closed.length,
+    winRate,
+    highAvg: avg(high), highCount: high.length,
+    lowAvg: avg(low), lowCount: low.length,
+  };
+}
+
+function takeSnapshotIfNeeded(){
+  const stats = computeStats();
+  if(stats.open.length === 0) return;
+  const today = todayStr();
+  const snap = {date: today, value: stats.value, cost: stats.cost, pnl: stats.pnl, pnlPct: stats.pnlPct};
+  if(snapshots.length && snapshots[snapshots.length - 1].date === today){
+    snapshots[snapshots.length - 1] = snap;
+  } else {
+    snapshots.push(snap);
+  }
+  saveSnapshots();
+}
+
+// ============ RENDERING ============
+function render(){
+  const stats = computeStats();
+  renderStats(stats);
+  renderCharts(stats);
+  renderInsights();
+  renderList(stats);
+  renderSymbolSuggestions();
+}
+
+function renderStats(stats){
+  const winRateStr = stats.winRate === null ? '—' : stats.winRate.toFixed(0) + '%';
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">סה"כ מושקע (פוזיציות פתוחות)</div>
+      <div class="stat-value">${fmtMoney(stats.cost)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">שווי נוכחי</div>
+      <div class="stat-value">${fmtMoney(stats.value)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">רווח/הפסד לא ממומש</div>
+      <div class="stat-value ${pnlClass(stats.pnl)}">${fmtMoney(stats.pnl)} (${fmtPct(stats.pnlPct)})</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">אחוז הצלחה (הכל)</div>
+      <div class="stat-value">${winRateStr}</div>
+    </div>
+  `;
+}
+
+function renderCharts(stats){
+  const eqCanvas = document.getElementById('equityChart');
+  const labels = snapshots.map(s => s.date);
+  const data = snapshots.map(s => s.pnl);
+  const pointColors = data.map(v => v >= 0 ? '#10b981' : '#ef4444');
+  if(equityChartInstance) equityChartInstance.destroy();
+  equityChartInstance = new Chart(eqCanvas, {
+    type: 'line',
+    data: {labels, datasets: [{
+      label: 'רווח/הפסד ($)',
+      data,
+      borderColor: '#1e3a8a',
+      backgroundColor: 'rgba(30,58,138,0.08)',
+      fill: true,
+      tension: 0.25,
+      pointBackgroundColor: pointColors,
+      pointRadius: 4,
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {legend: {display: false}},
+      scales: {y: {ticks: {callback: v => '$' + v}}}
+    }
+  });
+  document.getElementById('equityCaption').textContent = snapshots.length < 2
+    ? 'הגרף יתמלא לאורך זמן ככל שתשתמשו במערכת בימים שונים.'
+    : '';
+
+  const barCanvas = document.getElementById('returnChart');
+  const priced = stats.positions.filter(p => p.price !== null);
+  if(returnChartInstance) returnChartInstance.destroy();
+  if(priced.length){
+    const barLabels = priced.map(p => p.entry.symbol);
+    const barData = priced.map(p => p.pnlPct);
+    const barColors = barData.map(v => v >= 0 ? '#10b981' : '#ef4444');
+    returnChartInstance = new Chart(barCanvas, {
+      type: 'bar',
+      data: {labels: barLabels, datasets: [{label: 'תשואה %', data: barData, backgroundColor: barColors, borderRadius: 6}]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {legend: {display: false}},
+        scales: {y: {ticks: {callback: v => v + '%'}}}
+      }
+    });
+    document.getElementById('returnCaption').textContent = '';
+  } else {
+    document.getElementById('returnCaption').textContent = 'אין עדיין פוזיציות פתוחות עם מחיר ידוע.';
+  }
+}
+
+function renderInsights(){
+  const box = document.getElementById('insightsBox');
+  const ins = computeInsights();
+  if(ins.closedCount < 3){
+    box.innerHTML = `<div class="insight-card">📊 <b>תובנות על דיוק ההחלטות שלך</b> יופיעו כאן לאחר סגירת 3 עסקאות לפחות (סגורות כרגע: ${ins.closedCount}).</div>`;
+    return;
+  }
+  let html = `<div class="insight-card">📊 מתוך <b>${ins.closedCount}</b> עסקאות סגורות, שיעור ההצלחה שלך הוא <b>${ins.winRate.toFixed(0)}%</b>.`;
+  if(ins.highCount > 0 && ins.lowCount > 0){
+    html += ` עסקאות שבהן היתה לך <b>ביטחון גבוה (4-5)</b> הניבו תשואה ממוצעת של <b>${ins.highAvg.toFixed(1)}%</b>, לעומת <b>${ins.lowAvg.toFixed(1)}%</b> בעסקאות בביטחון נמוך (1-2).`;
+  } else if(ins.highCount > 0){
+    html += ` עסקאות בביטחון גבוה (4-5) הניבו תשואה ממוצעת של <b>${ins.highAvg.toFixed(1)}%</b>.`;
+  }
+  html += `</div>`;
+  box.innerHTML = html;
+}
+
+function renderSymbolSuggestions(){
+  const symbols = new Set(DEFAULT_SYMBOLS);
+  entries.forEach(e => symbols.add(e.symbol));
+  document.getElementById('symbolSuggestions').innerHTML =
+    [...symbols].map(s => `<option value="${s}"></option>`).join('');
+}
+
+function filteredEntries(){
+  return entries
+    .filter(e => filterState === 'all' || e.status === filterState)
+    .filter(e => !searchState || e.symbol.toLowerCase().includes(searchState.toLowerCase()))
+    .sort((a,b) => new Date(b.buyDate) - new Date(a.buyDate));
+}
+
+function renderList(stats){
+  const list = filteredEntries();
+  const container = document.getElementById('entriesList');
+  if(entries.length === 0){
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="big">📓</div>
+        <div><b>עדיין אין תיעודים ביומן</b></div>
+        <div>תעדו את העסקה הראשונה שלכם בטופס בצד — למה קניתם, מה חשבתם.</div>
+      </div>`;
+    return;
+  }
+  if(list.length === 0){
+    container.innerHTML = `<div class="empty-state">לא נמצאו תיעודים תואמים לסינון הנוכחי.</div>`;
+    return;
+  }
+  container.innerHTML = list.map(e => renderEntryCard(e, stats)).join('');
+}
+
+function renderEntryCard(e, stats){
+  const isOpen = e.status === 'open';
+  let cardClass = 'entry-card';
+  let numbersHtml = '';
+  if(isOpen){
+    const pos = stats.positions.find(p => p.entry.id === e.id);
+    const priceKnown = pos && pos.price !== null;
+    numbersHtml = `
+      <div class="entry-numbers">
+        <div>כמות: <span class="num">${e.quantity}</span></div>
+        <div>מחיר קניה: ${fmtMoney(e.buyPrice)}</div>
+        ${priceKnown ? `
+          <div>מחיר נוכחי: ${fmtMoney(pos.price)} ${pos.source === 'manual' ? '<span class="hint">(ידני)</span>' : ''}</div>
+          <div>רווח/הפסד: <span class="${pnlClass(pos.pnl)}">${fmtMoney(pos.pnl)} (${fmtPct(pos.pnlPct)})</span></div>
+        ` : `<div class="hint">מחיר נוכחי לא נמצא</div>`}
+      </div>
+      ${!priceKnown ? `
+        <div class="manual-price-row">
+          <input type="number" step="0.01" placeholder="הזן מחיר ידנית" id="manual-${e.id}">
+          <button type="button" class="btn-secondary btn-sm" data-action="saveManualPrice" data-symbol="${e.symbol}" data-input="manual-${e.id}">שמור מחיר</button>
+        </div>
+      ` : ''}
+    `;
+  } else {
+    const realizedPnl = (e.sellPrice - e.buyPrice) * e.quantity;
+    const realizedPct = (e.sellPrice - e.buyPrice) / e.buyPrice * 100;
+    cardClass += realizedPnl >= 0 ? ' closed-win' : ' closed-loss';
+    numbersHtml = `
+      <div class="entry-numbers">
+        <div>כמות: <span class="num">${e.quantity}</span></div>
+        <div>קניה: ${fmtMoney(e.buyPrice)}</div>
+        <div>מכירה: ${fmtMoney(e.sellPrice)}</div>
+        <div>רווח/הפסד ממומש: <span class="${pnlClass(realizedPnl)}">${fmtMoney(realizedPnl)} (${fmtPct(realizedPct)})</span></div>
+      </div>
+      ${e.lesson ? `<div class="entry-body"><b>מה למדתי:</b> ${escapeHtml(e.lesson)}</div>` : ''}
+    `;
+  }
+
+  return `
+    <div class="${cardClass}" data-id="${e.id}">
+      <div class="entry-head">
+        <div class="entry-title">
+          <span class="symbol">${e.symbol}</span>
+          <span class="badge ${isOpen ? 'badge-open' : 'badge-closed'}">${isOpen ? 'פתוחה' : 'סגורה'}</span>
+          ${e.tag ? `<span class="badge badge-tag">${escapeHtml(e.tag)}</span>` : ''}
+          ${confidenceDots(e.confidence)}
+        </div>
+      </div>
+      <div class="entry-meta">
+        נקנה ב-<span class="num">${e.buyDate}</span>${!isOpen ? ` · נמכר ב-<span class="num">${e.sellDate}</span>` : ''}
+      </div>
+      <div class="entry-body">${escapeHtml(e.thesis)}</div>
+      ${numbersHtml}
+      ${isOpen ? `
+        <div class="entry-actions">
+          <button type="button" class="btn-success btn-sm" data-action="toggleClose">סגור פוזיציה</button>
+          <button type="button" class="btn-danger btn-sm" data-action="delete">מחק</button>
+        </div>
+        <div class="close-form" id="closeform-${e.id}">
+          <form data-action="submitClose" data-id="${e.id}">
+            <h3>סגירת פוזיציה — ${e.symbol}</h3>
+            <div class="row-inline">
+              <div>
+                <label>תאריך מכירה</label>
+                <input type="date" name="sellDate" required value="${todayStr()}">
+              </div>
+              <div>
+                <label>מחיר מכירה ($)</label>
+                <div class="row-inline">
+                  <input type="number" name="sellPrice" step="0.01" min="0" required>
+                  <button type="button" class="btn-secondary btn-sm" data-action="fetchSellPrice" data-symbol="${e.symbol}" style="flex:0 0 auto;">משוך מחיר</button>
+                </div>
+              </div>
+            </div>
+            <label>מה קרה בפועל? מה למדתי?</label>
+            <textarea name="lesson" placeholder="האם התזה התבררה כנכונה? מה הייתי עושה אחרת?"></textarea>
+            <button type="submit" class="btn-primary btn-sm" style="margin-top:10px;">שמור סגירה</button>
+            <button type="button" class="btn-ghost btn-sm" data-action="toggleClose" style="margin-top:10px;">ביטול</button>
+          </form>
+        </div>
+      ` : `
+        <div class="entry-actions">
+          <button type="button" class="btn-danger btn-sm" data-action="delete">מחק</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function confidenceDots(level){
+  let dots = '';
+  for(let i = 1; i <= 5; i++){
+    dots += `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;margin-inline-start:2px;background:${i <= level ? 'var(--confidence)' : 'var(--border)'};"></span>`;
+  }
+  return `<span title="רמת ביטחון: ${level}/5">${dots}</span>`;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+// ============ EVENT WIRING ============
+document.getElementById('buyDateInput').value = todayStr();
+
+function setConfidenceUI(val){
+  document.querySelectorAll('#confidencePicker button').forEach(b => {
+    b.classList.toggle('active', +b.dataset.val === val);
+  });
+}
+setConfidenceUI(+document.getElementById('confidenceInput').value);
+
+document.getElementById('confidencePicker').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const val = +btn.dataset.val;
+  document.getElementById('confidenceInput').value = val;
+  setConfidenceUI(val);
+});
+
+document.getElementById('fetchBuyPriceBtn').addEventListener('click', async () => {
+  const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+  const errEl = document.getElementById('buyPriceError');
+  errEl.textContent = '';
+  if(!symbol){ errEl.textContent = 'הזן סימבול קודם'; return; }
+  const btn = document.getElementById('fetchBuyPriceBtn');
+  btn.disabled = true; btn.textContent = 'מושך...';
+  const price = await fetchPrice(symbol);
+  btn.disabled = false; btn.textContent = 'משוך מחיר נוכחי';
+  if(price !== null){
+    document.getElementById('buyPriceInput').value = price.toFixed(2);
+  } else {
+    errEl.textContent = 'לא נמצא מחיר (ודא שהשרת פעיל), אפשר להזין ידנית';
+  }
+});
+
+document.getElementById('addForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+  const buyDate = document.getElementById('buyDateInput').value;
+  const quantity = parseFloat(document.getElementById('quantityInput').value);
+  const buyPrice = parseFloat(document.getElementById('buyPriceInput').value);
+  const confidence = +document.getElementById('confidenceInput').value;
+  const tag = document.getElementById('tagInput').value.trim();
+  const thesis = document.getElementById('thesisInput').value.trim();
+
+  if(!symbol || !buyDate || !quantity || !buyPrice || !thesis){
+    setStatus('formStatus', 'נא למלא את כל השדות הנדרשים, כולל התזה.');
+    return;
+  }
+
+  entries.push({
+    id: uid(), symbol, buyDate, quantity, buyPrice, confidence, tag, thesis,
+    status: 'open', createdAt: new Date().toISOString(),
+  });
+  saveEntries();
+  e.target.reset();
+  document.getElementById('buyDateInput').value = todayStr();
+  document.getElementById('confidenceInput').value = 3;
+  setConfidenceUI(3);
+  setStatus('formStatus', 'התיעוד נשמר ✓');
+  setTimeout(() => setStatus('formStatus', ''), 2500);
+  refreshAllPrices();
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchState = e.target.value;
+  render();
+});
+document.getElementById('filterTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if(!btn) return;
+  filterState = btn.dataset.filter;
+  document.querySelectorAll('#filterTabs .tab').forEach(t => t.classList.toggle('active', t === btn));
+  render();
+});
+document.getElementById('refreshPricesBtn').addEventListener('click', refreshAllPrices);
+
+document.getElementById('entriesList').addEventListener('click', async e => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const card = btn.closest('[data-id]');
+  const id = card ? card.dataset.id : null;
+  const action = btn.dataset.action;
+
+  if(action === 'delete'){
+    if(confirm('למחוק את התיעוד הזה לצמיתות?')){
+      entries = entries.filter(x => x.id !== id);
+      saveEntries();
+      render();
+    }
+  } else if(action === 'toggleClose'){
+    const form = document.getElementById(`closeform-${id}`);
+    if(form) form.classList.toggle('show');
+  } else if(action === 'fetchSellPrice'){
+    const symbol = btn.dataset.symbol;
+    btn.disabled = true; btn.textContent = 'מושך...';
+    const price = await fetchPrice(symbol);
+    btn.disabled = false; btn.textContent = 'משוך מחיר';
+    if(price !== null){
+      btn.closest('.row-inline').querySelector('input[name=sellPrice]').value = price.toFixed(2);
+    } else {
+      alert('לא נמצא מחיר, הזן ידנית');
+    }
+  } else if(action === 'saveManualPrice'){
+    const symbol = btn.dataset.symbol;
+    const input = document.getElementById(btn.dataset.input);
+    const val = parseFloat(input.value);
+    if(!val || val <= 0){ alert('הזן מחיר תקין'); return; }
+    manualPrices[symbol] = val;
+    saveManualPrices();
+    currentPrices[symbol] = {price: val, source: 'manual'};
+    takeSnapshotIfNeeded();
+    render();
+  }
+});
+
+document.getElementById('entriesList').addEventListener('submit', e => {
+  const form = e.target;
+  if(form.dataset.action !== 'submitClose') return;
+  e.preventDefault();
+  const id = form.dataset.id;
+  const entry = entries.find(x => x.id === id);
+  if(!entry) return;
+  const sellDate = form.querySelector('[name=sellDate]').value;
+  const sellPrice = parseFloat(form.querySelector('[name=sellPrice]').value);
+  const lesson = form.querySelector('[name=lesson]').value.trim();
+  if(!sellDate || !sellPrice){ alert('נא למלא תאריך ומחיר מכירה'); return; }
+  entry.status = 'closed';
+  entry.sellDate = sellDate;
+  entry.sellPrice = sellPrice;
+  entry.lesson = lesson;
+  saveEntries();
+  takeSnapshotIfNeeded();
+  render();
+});
+
+// Export / Import backup
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const payload = {entries, snapshots, manualPrices, exportedAt: new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `netan-journal-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const payload = JSON.parse(reader.result);
+      if(!Array.isArray(payload.entries)) throw new Error('invalid');
+      if(!confirm('פעולה זו תחליף את כל הנתונים הקיימים ביומן. להמשיך?')) return;
+      entries = payload.entries || [];
+      snapshots = payload.snapshots || [];
+      manualPrices = payload.manualPrices || {};
+      saveEntries(); saveSnapshots(); saveManualPrices();
+      refreshAllPrices();
+    }catch(err){
+      alert('קובץ לא תקין. ודא שזה קובץ ייצוא של יומן ההשקעות.');
+    }
+  };
+  reader.readAsText(file);
+});
+
+// ============ INIT ============
+render();
+refreshAllPrices();
+</script>
+</body>
+</html>
